@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: justease-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      # Set the following in the Render dashboard (do NOT commit secrets):
+      # MONGO_URI        — your MongoDB Atlas connection string
+      # JWT_SECRET       — long random string (64+ chars)
+      # CLIENT_URL       — https://just-ease-eight.vercel.app
+      # EMAIL_HOST / EMAIL_USER / EMAIL_PASS  — optional SMTP config
