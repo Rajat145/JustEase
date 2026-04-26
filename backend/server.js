@@ -97,32 +97,36 @@ const affidavitRoutes = require('./routes/affidavits');
 const app = express();
 
 // ── CORS ───────────────────────────────────────────────────────
-// Allow requests from the deployed Vercel frontend AND localhost for dev
+// Allows the Vercel frontend + local dev. withCredentials is false
+// on the client so we don't need credentials:true here.
 const allowedOrigins = [
-  'https://just-ease-eight.vercel.app',   // ← production Vercel URL
-  'http://localhost:5173',                 // ← local Vite dev server
-  'http://localhost:3000',                 // ← fallback local
+  'https://just-ease-eight.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. curl, Postman, mobile apps)
+    // Allow requests with no origin (Postman, curl, mobile)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS blocked: ${origin} is not in the allowed list`));
+    console.warn(`CORS blocked: ${origin}`);
+    // In production be strict; in dev allow all to ease testing
+    if (process.env.NODE_ENV !== 'production') return callback(null, true);
+    callback(new Error(`CORS policy: ${origin} is not allowed`));
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Handle pre-flight OPTIONS requests for all routes
+// Handle pre-flight for all routes
 app.options('*', cors());
 
 // ── Rate Limiting ──────────────────────────────────────────────
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  windowMs: 15 * 60 * 1000,
+  max: 300,
   message: { success: false, message: 'Too many requests. Please try again later.' },
 });
 app.use('/api/', limiter);
@@ -131,7 +135,7 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ── Static Files (uploaded documents) ─────────────────────────
+// ── Static Files ───────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── API Routes ─────────────────────────────────────────────────
@@ -152,16 +156,14 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ── Root ───────────────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.json({ success: true, message: 'JustEase Backend API — visit /api/health for status.' });
+  res.json({ success: true, message: 'JustEase Backend API. Visit /api/health for status.' });
 });
 
 // ── Global Error Handler ───────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error('❌ Error:', err.message);
-  const status = err.statusCode || 500;
-  res.status(status).json({
+  console.error('❌', err.message);
+  res.status(err.statusCode || 500).json({
     success: false,
     message: err.message || 'Internal Server Error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
@@ -173,7 +175,7 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
 
-// ── Connect to MongoDB & Start Server ─────────────────────────
+// ── Start ──────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
 mongoose
@@ -181,9 +183,8 @@ mongoose
   .then(() => {
     console.log('✅ MongoDB connected');
     app.listen(PORT, () => {
-      console.log(`🚀 JustEase API → http://localhost:${PORT}`);
+      console.log(`🚀 JustEase API → port ${PORT}`);
       console.log(`🌍 Environment  : ${process.env.NODE_ENV}`);
-      console.log(`🔗 Allowed CORS : ${allowedOrigins.join(', ')}`);
     });
   })
   .catch((err) => {
