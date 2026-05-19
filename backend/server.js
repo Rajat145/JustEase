@@ -1,85 +1,3 @@
-// const express = require('express');
-// const mongoose = require('mongoose');
-// const cors = require('cors');
-// const path = require('path');
-// const rateLimit = require('express-rate-limit');
-// require('dotenv').config();
-
-// const authRoutes     = require('./routes/auth');
-// const caseRoutes     = require('./routes/cases');
-// const documentRoutes = require('./routes/documents');
-// const hearingRoutes  = require('./routes/hearings');
-// const userRoutes     = require('./routes/users');
-// const affidavitRoutes = require('./routes/affidavits');
-
-// const app = express();
-
-// // ── Rate Limiting ──────────────────────────────────────────────
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: 200,
-//   message: { success: false, message: 'Too many requests. Please try again later.' },
-// });
-// app.use('/api/', limiter);
-
-// // ── Middleware ─────────────────────────────────────────────────
-// app.use(cors({
-//   origin: process.env.CLIENT_URL || 'https://just-ease-eight.vercel.app/',
-//   credentials: true,
-// }));
-// app.use(express.json({ limit: '10mb' }));
-// app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// // ── Static Files (uploads) ─────────────────────────────────────
-// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// // ── API Routes ─────────────────────────────────────────────────
-// app.use('/api/auth',       authRoutes);
-// app.use('/api/cases',      caseRoutes);
-// app.use('/api/documents',  documentRoutes);
-// app.use('/api/hearings',   hearingRoutes);
-// app.use('/api/users',      userRoutes);
-// app.use('/api/affidavits', affidavitRoutes);
-
-// // ── Health Check ───────────────────────────────────────────────
-// app.get('/api/health', (req, res) => {
-//   res.json({ success: true, message: 'JustEase API is running', timestamp: new Date() });
-// });
-
-// // ── Global Error Handler ───────────────────────────────────────
-// app.use((err, req, res, next) => {
-//   console.error(err.stack);
-//   const status = err.statusCode || 500;
-//   res.status(status).json({
-//     success: false,
-//     message: err.message || 'Internal Server Error',
-//     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-//   });
-// });
-
-// // ── 404 Handler ────────────────────────────────────────────────
-// app.use((req, res) => {
-//   res.status(404).json({ success: false, message: 'Route not found' });
-// });
-
-// // ── Database & Server Start ────────────────────────────────────
-// const PORT = process.env.PORT || 5000;
-
-// mongoose
-//   .connect(process.env.MONGO_URI)
-//   .then(() => {
-//     console.log('✅ MongoDB connected');
-//     app.listen(PORT, () => {
-//       console.log(`🚀 JustEase API running on http://localhost:${PORT}`);
-//       console.log(`📌 Environment: ${process.env.NODE_ENV}`);
-//     });
-//   })
-//   .catch((err) => {
-//     console.error('❌ MongoDB connection failed:', err.message);
-//     process.exit(1);
-//   });
-
-// module.exports = app;
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -87,55 +5,32 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const authRoutes      = require('./routes/auth');
-const caseRoutes      = require('./routes/cases');
-const documentRoutes  = require('./routes/documents');
-const hearingRoutes   = require('./routes/hearings');
-const userRoutes      = require('./routes/users');
+const authRoutes     = require('./routes/auth');
+const caseRoutes     = require('./routes/cases');
+const documentRoutes = require('./routes/documents');
+const hearingRoutes  = require('./routes/hearings');
+const userRoutes     = require('./routes/users');
 const affidavitRoutes = require('./routes/affidavits');
 
 const app = express();
 
-// ── CORS ───────────────────────────────────────────────────────
-// Allows the Vercel frontend + local dev. withCredentials is false
-// on the client so we don't need credentials:true here.
-const allowedOrigins = [
-  'https://just-ease-eight.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (Postman, curl, mobile)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.warn(`CORS blocked: ${origin}`);
-    // In production be strict; in dev allow all to ease testing
-    if (process.env.NODE_ENV !== 'production') return callback(null, true);
-    callback(new Error(`CORS policy: ${origin} is not allowed`));
-  },
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
-// Handle pre-flight for all routes
-app.options('*', cors());
-
 // ── Rate Limiting ──────────────────────────────────────────────
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200,
   message: { success: false, message: 'Too many requests. Please try again later.' },
 });
 app.use('/api/', limiter);
 
-// ── Body Parsers ───────────────────────────────────────────────
+// ── Middleware ─────────────────────────────────────────────────
+app.use(cors({
+  origin: process.env.CLIENT_URL ,
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ── Static Files ───────────────────────────────────────────────
+// ── Static Files (uploads) ─────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── API Routes ─────────────────────────────────────────────────
@@ -148,34 +43,26 @@ app.use('/api/affidavits', affidavitRoutes);
 
 // ── Health Check ───────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'JustEase API is running ⚖️',
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-app.get('/', (req, res) => {
-  res.json({ success: true, message: 'JustEase Backend API. Visit /api/health for status.' });
+  res.json({ success: true, message: 'JustEase API is running', timestamp: new Date() });
 });
 
 // ── Global Error Handler ───────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error('❌', err.message);
-  res.status(err.statusCode || 500).json({
+  console.error(err.stack);
+  const status = err.statusCode || 500;
+  res.status(status).json({
     success: false,
     message: err.message || 'Internal Server Error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });
 
-// ── 404 ────────────────────────────────────────────────────────
+// ── 404 Handler ────────────────────────────────────────────────
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
+  res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// ── Start ──────────────────────────────────────────────────────
+// ── Database & Server Start ────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
 mongoose
@@ -183,8 +70,8 @@ mongoose
   .then(() => {
     console.log('✅ MongoDB connected');
     app.listen(PORT, () => {
-      console.log(`🚀 JustEase API → port ${PORT}`);
-      console.log(`🌍 Environment  : ${process.env.NODE_ENV}`);
+      console.log(`🚀 JustEase API running on http://localhost:${PORT}`);
+      console.log(`📌 Environment: ${process.env.NODE_ENV}`);
     });
   })
   .catch((err) => {
